@@ -1,0 +1,327 @@
+{
+  "info": {
+    "name": "Blog API",
+    "description": "Node.js/Express/MongoDB Blog API — Auth, Users, Posts, Comments",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api" },
+    { "key": "userToken", "value": "" },
+    { "key": "bobToken", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "postId", "value": "" },
+    { "key": "commentId", "value": "" },
+    { "key": "aliceId", "value": "" },
+    { "key": "bobId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Alice",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "if (pm.response.code === 201) {",
+            "  const json = pm.response.json();",
+            "  pm.collectionVariables.set('aliceId', json.data.user.id);",
+            "}"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Alice Test\",\n  \"email\": \"alice@test.com\",\n  \"password\": \"password123\"\n}" },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Register Bob",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "if (pm.response.code === 201) {",
+            "  const json = pm.response.json();",
+            "  pm.collectionVariables.set('bobId', json.data.user.id);",
+            "}"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Bob Test\",\n  \"email\": \"bob@test.com\",\n  \"password\": \"password123\"\n}" },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Register Admin (then promote manually in MongoDB)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Admin User\",\n  \"email\": \"admin@test.com\",\n  \"password\": \"password123\"\n}" },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Login Alice",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "if (pm.response.code === 200) {",
+            "  const json = pm.response.json();",
+            "  pm.collectionVariables.set('userToken', json.token);",
+            "}"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"alice@test.com\",\n  \"password\": \"password123\"\n}" },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Login Bob",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "if (pm.response.code === 200) {",
+            "  const json = pm.response.json();",
+            "  pm.collectionVariables.set('bobToken', json.token);",
+            "}"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"bob@test.com\",\n  \"password\": \"password123\"\n}" },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Login Admin",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "if (pm.response.code === 200) {",
+            "  const json = pm.response.json();",
+            "  pm.collectionVariables.set('adminToken', json.token);",
+            "}"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@test.com\",\n  \"password\": \"password123\"\n}" },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Register — validation error (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"A\",\n  \"email\": \"not-an-email\",\n  \"password\": \"123\"\n}" },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get all users — no token (expect 401)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/users" }
+        },
+        {
+          "name": "Get all users — non-admin (expect 403)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": "{{baseUrl}}/users"
+          }
+        },
+        {
+          "name": "Get all users — admin (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/users"
+          }
+        },
+        {
+          "name": "Get single user",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": "{{baseUrl}}/users/{{aliceId}}"
+          }
+        },
+        {
+          "name": "Update own profile (Alice)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Alice Updated\"\n}" },
+            "url": "{{baseUrl}}/users/{{aliceId}}"
+          }
+        },
+        {
+          "name": "Delete user — admin only (expect 200)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/users/{{bobId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Posts",
+      "item": [
+        {
+          "name": "Create post — no auth (expect 401)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"My First Blog Post\",\n  \"content\": \"This is the content of my first post.\",\n  \"category\": \"tech\"\n}" },
+            "url": "{{baseUrl}}/posts"
+          }
+        },
+        {
+          "name": "Create post as Alice",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "if (pm.response.code === 201) {",
+            "  const json = pm.response.json();",
+            "  pm.collectionVariables.set('postId', json.data.post._id);",
+            "}"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"My First Blog Post\",\n  \"content\": \"This is the content of my first post.\",\n  \"category\": \"tech\",\n  \"tags\": [\"node\", \"express\"]\n}" },
+            "url": "{{baseUrl}}/posts"
+          }
+        },
+        {
+          "name": "Create post — validation error (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Hi\",\n  \"content\": \"short\",\n  \"category\": \"tech\"\n}" },
+            "url": "{{baseUrl}}/posts"
+          }
+        },
+        {
+          "name": "Get all posts (public, paginated)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/posts?page=1&limit=10" }
+        },
+        {
+          "name": "Search + filter posts",
+          "request": { "method": "GET", "url": "{{baseUrl}}/posts?search=blog&category=tech&sort=-createdAt" }
+        },
+        {
+          "name": "Get single post (public, with comments)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/posts/{{postId}}" }
+        },
+        {
+          "name": "Update post as Bob — not owner (expect 403)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{bobToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Hijacked Title Attempt\"\n}" },
+            "url": "{{baseUrl}}/posts/{{postId}}"
+          }
+        },
+        {
+          "name": "Update post as Alice — owner (expect 200)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"My First Blog Post (Updated)\"\n}" },
+            "url": "{{baseUrl}}/posts/{{postId}}"
+          }
+        },
+        {
+          "name": "Delete post as Bob — not owner (expect 403)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{bobToken}}" }],
+            "url": "{{baseUrl}}/posts/{{postId}}"
+          }
+        },
+        {
+          "name": "Delete post as Alice — owner (expect 200)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": "{{baseUrl}}/posts/{{postId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Add comment — no auth (expect 401)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"text\": \"Nice post!\"\n}" },
+            "url": "{{baseUrl}}/posts/{{postId}}/comments"
+          }
+        },
+        {
+          "name": "Add comment as Bob",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "if (pm.response.code === 201) {",
+            "  const json = pm.response.json();",
+            "  pm.collectionVariables.set('commentId', json.data.comment._id);",
+            "}"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{bobToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"text\": \"Nice post, Alice!\"\n}" },
+            "url": "{{baseUrl}}/posts/{{postId}}/comments"
+          }
+        },
+        {
+          "name": "Delete comment as Alice — not owner (expect 403)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": "{{baseUrl}}/comments/{{commentId}}"
+          }
+        },
+        {
+          "name": "Delete comment as Bob — owner (expect 200)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{bobToken}}" }],
+            "url": "{{baseUrl}}/comments/{{commentId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Misc",
+      "item": [
+        {
+          "name": "Health check",
+          "request": { "method": "GET", "url": "http://localhost:5000/" }
+        },
+        {
+          "name": "Unknown route (expect 404)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/does-not-exist" }
+        }
+      ]
+    }
+  ]
+}
